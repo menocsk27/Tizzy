@@ -37,6 +37,7 @@ class StateTransition():
 
 class FSMGen():
     def __init__(self):
+        self.__name = ""
         self.__title = ""
         self.__unique_states = []
         self.__num_states = 0
@@ -149,7 +150,7 @@ class FSMGen():
         """
         re_fsm_name = re.compile(r'^\s*digraph\s*(\w+)')
         re_fsm_label = re.compile(r'^\s*label\s*=\s*\"(.*)\"')
-        re_states = re.compile(r'^\s*(\w+)\s*->\s*(\w+)')
+        re_states = re.compile(r'^\s*(.+)\s*->\s*(.+)')
         re_affectors = re.compile(r'\[\s*label\s*=\s*\"(.*)\"\s*\]')
 
         self.subs['dot_filename'] = filename
@@ -206,8 +207,12 @@ class FSMGen():
                 else:
                     self.__states[state].transitions.append((next_state, affector))
 
+        num_unique_states = len(self.__unique_states)
+        if num_unique_states == 0: 
+            raise NoDefaultStatesError("parseDotFile", "No states were found while parsing", None)
+
         self.__default_state = self.__unique_states[0]
-        self.__num_states = len(self.__unique_states)
+        self.__num_states = num_unique_states
         self.logger.debug("State Transitions:")
         for state in self.__unique_states:
             for trans in self.__states[state].transitions:
@@ -312,7 +317,7 @@ class FSMGen():
 #        self.subs['creation_date'] = time.strftime("%b %d %Y")
         self.subs['creation_date'] = time.strftime("%d-%b-%Y")
         self.subs['title'] = self.__title
-        self.subs['module_name'] = self.__name
+        self.subs['module_name'] = self.__name if self.__name else "name"
         for i in self.__unique_affectors:
             self.subs['inputs'] += "    input   wire %s,\n" % i
         self.subs['msb'] = self.__num_states-1
@@ -389,6 +394,10 @@ class DuplicateTransitionError(FSMError):
         FSMError.__init__(self, method_name, error_message, long_message)
 
 class MultipleDefaultTransitionsError(FSMError):
+    def __init__(self, method_name, error_message, long_message):
+        FSMError.__init__(self, method_name, error_message, long_message)
+
+class NoDefaultStatesError(FSMError):
     def __init__(self, method_name, error_message, long_message):
         FSMError.__init__(self, method_name, error_message, long_message)
 
